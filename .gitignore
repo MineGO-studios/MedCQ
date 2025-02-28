@@ -1,0 +1,94 @@
+# Environment Variables
+.env
+.env_backend
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Firebase
+firebase-credentials.json
+**/firebase-credentials.json
+
+# Supabase
+*.supabase.*
+
+# Dependencies
+**/node_modules/
+**/.pnp
+**/.pnp.js
+
+# Testing
+**/coverage/
+**/.nyc_output/
+
+# Build
+**/dist/
+**/build/
+**/.next/
+**/.nuxt/
+**/.vuepress/dist
+
+# Cache
+**/.cache/
+**/.eslintcache
+**/.npm
+**/pip-log.txt
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*.swn
+*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv
+venv/
+ENV/
+
+# Database
+*.sqlite3
+*.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage
+.coverage
+htmlcov/
+
+# Local Development
+.history
+.vercel
+.netlify
