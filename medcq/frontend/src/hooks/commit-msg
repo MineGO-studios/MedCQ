@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Validate commit message format (Conventional Commits)
+commit_msg_file=$1
+commit_msg=$(cat $commit_msg_file)
+
+# Regex pattern for conventional commits
+pattern="^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z-]+\))?: .{1,100}"
+
+if ! [[ $commit_msg =~ $pattern ]]; then
+  echo "❌ Invalid commit message format."
+  echo "Must match pattern: type(scope): description"
+  echo "Example: feat(auth): implement user login"
+  echo "Types: build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test"
+  exit 1
+fi
+
+# Ensure first letter of description is lowercase
+first_letter=$(echo $commit_msg | sed -E 's/^[^:]+: (.{1}).*$/\1/')
+if [[ $first_letter =~ [A-Z] ]]; then
+  echo "❌ Description must start with lowercase letter"
+  exit 1
+fi
+
+echo "✅ Commit message format is valid"
+exit 0
