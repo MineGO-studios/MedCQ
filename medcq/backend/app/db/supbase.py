@@ -1,3 +1,5 @@
+# backend/app/db/supabase.py
+
 from supabase import create_client, Client
 from app.core.config import settings
 import logging
@@ -32,137 +34,118 @@ def get_supabase_client() -> Optional[Client]:
         logger.error(f"Failed to initialize Supabase client: {e}")
         return None
 
-
-async def fetch_users(filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+# User-related database operations
+async def create_user_profile(user_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
-    Fetch users from Supabase with optional filtering.
+    Create a new user profile in Supabase.
     
     Args:
-        filters: Optional filters to apply to the query
+        user_data: The user data to insert
         
     Returns:
-        List of user records
+        The created user record, or None if creation failed
     """
     client = get_supabase_client()
     if not client:
-        logger.warning("Supabase client not initialized. Returning empty list.")
-        return []
-    
-    try:
-        query = client.from_("users").select("*")
-        
-        # Apply filters if provided
-        if filters:
-            for key, value in filters.items():
-                query = query.eq(key, value)
-        
-        response = query.execute()
-        return response.data
-    except Exception as e:
-        logger.error(f"Error fetching users from Supabase: {e}")
-        return []
-
-
-async def fetch_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
-    """
-    Fetch a single user by ID.
-    
-    Args:
-        user_id: The ID of the user to fetch
-        
-    Returns:
-        The user record, or None if not found
-    """
-    client = get_supabase_client()
-    if not client:
-        logger.warning("Supabase client not initialized. Returning None.")
+        logger.warning("Supabase client not initialized. Cannot create user profile.")
         return None
     
     try:
-        response = client.from_("users").select("*").eq("id", user_id).execute()
+        response = client.from_("users").insert(user_data).execute()
         if response.data and len(response.data) > 0:
             return response.data[0]
         return None
     except Exception as e:
-        logger.error(f"Error fetching user from Supabase: {e}")
+        logger.error(f"Error creating user in Supabase: {e}")
         return None
 
-
-async def fetch_quizzes(filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+# Quiz-related database operations
+async def create_quiz(quiz_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
-    Fetch quizzes from Supabase with optional filtering.
+    Create a new quiz with questions and answer options.
+    This is a transaction that creates all related records.
     
     Args:
-        filters: Optional filters to apply to the query
-        
-    Returns:
-        List of quiz records
-    """
-    client = get_supabase_client()
-    if not client:
-        logger.warning("Supabase client not initialized. Returning empty list.")
-        return []
-    
-    try:
-        query = client.from_("quizzes").select("*")
-        
-        # Apply filters if provided
-        if filters:
-            for key, value in filters.items():
-                query = query.eq(key, value)
-        
-        response = query.execute()
-        return response.data
-    except Exception as e:
-        logger.error(f"Error fetching quizzes from Supabase: {e}")
-        return []
-
-
-async def fetch_quiz_by_id(quiz_id: str) -> Optional[Dict[str, Any]]:
-    """
-    Fetch a single quiz by ID.
-    
-    Args:
-        quiz_id: The ID of the quiz to fetch
-        
-    Returns:
-        The quiz record, or None if not found
-    """
-    client = get_supabase_client()
-    if not client:
-        logger.warning("Supabase client not initialized. Returning None.")
-        return None
-    
-    try:
-        response = client.from_("quizzes").select("*").eq("id", quiz_id).execute()
-        if response.data and len(response.data) > 0:
-            return response.data[0]
-        return None
-    except Exception as e:
-        logger.error(f"Error fetching quiz from Supabase: {e}")
-        return None
-
-
-async def create_quiz_record(quiz_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """
-    Create a new quiz record.
-    
-    Args:
-        quiz_data: The quiz data to insert
+        quiz_data: The quiz data including questions and answer options
         
     Returns:
         The created quiz record, or None if creation failed
     """
     client = get_supabase_client()
     if not client:
-        logger.warning("Supabase client not initialized. Cannot create quiz record.")
+        logger.warning("Supabase client not initialized. Cannot create quiz.")
         return None
     
     try:
-        response = client.from_("quizzes").insert(quiz_data).execute()
-        if response.data and len(response.data) > 0:
-            return response.data[0]
-        return None
+        # Extract questions and tags from quiz data
+        questions = quiz_data.pop("questions", [])
+        tags = quiz_data.pop("tags", [])
+        
+        # Start a transaction
+        # Note: Supabase Python client doesn't have direct transaction support
+        # We'll use separate operations
+        
+        # 1. Create the quiz
+        quiz_response = client.from_("quizzes").insert(quiz_data).execute()
+        if not quiz_response.data or len(quiz_response.data) == 0:
+            logger.error("Failed to create quiz.")
+            return None
+            
+        quiz_id = quiz_response.data[0]["id"]
+        
+        # 2. Process tags
+        for tag_name in tags:
+            # Check if tag exists
+            tag_resp = client.from_("tags").select("id").eq("name", tag_name).execute()
+            
+            if tag_resp.data and len(tag_resp.data) > 0:
+                tag_id = tag_resp.data[0]["id"]
+            else:
+                # Create new tag
+                new_tag_resp = client.from_("tags").insert({"name": tag_name}).execute()
+                if not new_tag_resp.data or len(new_tag_resp.data) == 0:
+                    logger.warning(f"Failed to create tag: {tag_name}")
+                    continue
+                tag_id = new_tag_resp.data[0]["id"]
+            
+            # Create quiz-tag relationship
+            client.from_("quiz_tags").insert({
+                "quiz_id": quiz_id,
+                "tag_id": tag_id
+            }).execute()
+        
+        # 3. Create questions and answer options
+        for i, question in enumerate(questions):
+            question_data = {
+                "quiz_id": quiz_id,
+                "text": question["text"],
+                "explanation": question.get("explanation"),
+                "type": question["type"],
+                "order_index": i
+            }
+            
+            question_resp = client.from_("questions").insert(question_data).execute()
+            if not question_resp.data or len(question_resp.data) == 0:
+                logger.warning(f"Failed to create question: {question['text']}")
+                continue
+                
+            question_id = question_resp.data[0]["id"]
+            
+            # Create answer options
+            for j, option in enumerate(question.get("options", [])):
+                option_data = {
+                    "question_id": question_id,
+                    "text": option["text"],
+                    "is_correct": option.get("is_correct", False),
+                    "order_index": j
+                }
+                
+                client.from_("answer_options").insert(option_data).execute()
+        
+        # Get the complete quiz data
+        return await fetch_quiz_by_id(quiz_id)
     except Exception as e:
         logger.error(f"Error creating quiz in Supabase: {e}")
         return None
+
+# Add more database functions...

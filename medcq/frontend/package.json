@@ -11,7 +11,9 @@
         "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
         "test": "vitest run",
         "test:watch": "vitest",
-        "prepare": "cd .. && husky install frontend/.husky"
+        "prepare": "cd .. && husky install frontend/.husky",
+        "migrate": "supabase migration up",
+        "generate-types": "ts-node scripts/generate-types.ts"
     },
     "dependencies": {
         "@tailwindcss/vite": "^4.0.9",

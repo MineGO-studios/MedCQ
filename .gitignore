@@ -5,6 +5,7 @@
 .env.development
 .env.production
 .env.test
+package-lock.json
 
 # Firebase
 firebase-credentials.json

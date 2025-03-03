@@ -1,13 +1,10 @@
-/**
- * API Client for communication with the backend
- * Provides typesafe endpoints with error handling
- */
+// frontend/src/services/api.ts
 
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { ApiResponse, Quiz, QuizAttempt, QuizResult, QuizSummary, User } from '../types';
+import axios from 'axios';
+import { quizService, userService } from './databaseService';
+import { QuizSummary, Quiz, QuizAttempt, QuizResult } from '../types';
 
-// Create axios instance with default configuration
-const apiClient: AxiosInstance = axios.create({
+const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
   headers: {
     'Content-Type': 'application/json',
@@ -17,142 +14,60 @@ const apiClient: AxiosInstance = axios.create({
 
 // Request interceptor for adding auth token
 apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    try {
+      const session = await userService.getCurrentUser();
+      if (session && config.headers) {
+        config.headers.Authorization = `Bearer ${session.id}`;
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError) => {
-    // Handle authentication errors
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-/**
- * Generic API request function with error handling
- */
-async function apiRequest<T>(
-  config: AxiosRequestConfig
-): Promise<ApiResponse<T>> {
-  try {
-    const response: AxiosResponse<T> = await apiClient(config);
-    return {
-      data: response.data,
-      status: response.status,
-    };
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      return {
-        error: error.response?.data?.detail || error.message,
-        status: error.response?.status || 500,
-      };
-    }
-    return {
-      error: 'An unexpected error occurred',
-      status: 500,
-    };
-  }
-}
-
-/**
- * Authentication API endpoints
- */
-export const authApi = {
-  /**
-   * Login with email and password (for development)
-   */
-  login: async (email: string, password: string): Promise<ApiResponse<{ access_token: string }>> => {
-    return apiRequest({
-      url: '/auth/token',
-      method: 'POST',
-      data: { username: email, password },
-    });
-  },
-
-  /**
-   * Login with Firebase token
-   */
-  loginWithFirebase: async (firebaseToken: string): Promise<ApiResponse<{ access_token: string }>> => {
-    return apiRequest({
-      url: '/auth/firebase-token',
-      method: 'POST',
-      data: { firebase_token: firebaseToken },
-    });
-  },
-
-  /**
-   * Get current user profile
-   */
-  getProfile: async (): Promise<ApiResponse<User>> => {
-    return apiRequest({
-      url: '/users/me',
-      method: 'GET',
-    });
-  },
-};
-
-/**
- * Quizzes API endpoints
- */
+// API service for quizzes
 export const quizzesApi = {
-  /**
-   * Get list of quizzes with optional filtering
-   */
-  getQuizzes: async (subject?: string, yearLevel?: number): Promise<ApiResponse<QuizSummary[]>> => {
-    const params: Record<string, string | number> = {};
-    if (subject) params.subject = subject;
-    if (yearLevel) params.year_level = yearLevel;
-
-    return apiRequest({
-      url: '/quizzes',
-      method: 'GET',
-      params,
-    });
+  // Get list of quizzes with optional filtering
+  async getQuizzes(subject?: string, yearLevel?: number): Promise<QuizSummary[]> {
+    // First try direct database access for better performance
+    try {
+      return await quizService.getQuizzes({
+        subject_id: subject, 
+        year_level: yearLevel
+      });
+    } catch (error) {
+      console.error('Direct DB access failed, falling back to API:', error);
+      // Fall back to API
+      const response = await apiClient.get('/quizzes', {
+        params: {
+          subject,
+          year_level: yearLevel
+        }
+      });
+      return response.data;
+    }
   },
 
-  /**
-   * Get a specific quiz by ID
-   */
-  getQuiz: async (quizId: string): Promise<ApiResponse<Quiz>> => {
-    return apiRequest({
-      url: `/quizzes/${quizId}`,
-      method: 'GET',
-    });
+  // Get a specific quiz by ID
+  async getQuiz(quizId: string): Promise<Quiz> {
+    // First try direct database access for better performance
+    try {
+      return await quizService.getQuizById(quizId);
+    } catch (error) {
+      console.error('Direct DB access failed, falling back to API:', error);
+      // Fall back to API
+      const response = await apiClient.get(`/quizzes/${quizId}`);
+      return response.data;
+    }
   },
 
-  /**
-   * Create a new quiz
-   */
-  createQuiz: async (quiz: Omit<Quiz, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>): Promise<ApiResponse<Quiz>> => {
-    return apiRequest({
-      url: '/quizzes',
-      method: 'POST',
-      data: quiz,
-    });
-  },
-
-  /**
-   * Submit quiz attempt and get results
-   */
-  submitQuiz: async (quizId: string, attempt: QuizAttempt): Promise<ApiResponse<QuizResult>> => {
-    return apiRequest({
-      url: `/quizzes/${quizId}/submit`,
-      method: 'POST',
-      data: attempt,
-    });
-  },
+  // Submit quiz attempt
+  async submitQuiz(quizId: string, attempt: QuizAttempt): Promise<QuizResult> {
+    // This needs to go through the API for proper scoring and validation
+    const response = await apiClient.post(`/quizzes/${quizId}/submit`, attempt);
+    return response.data;
+  }
 };
-
-export default apiClient;
