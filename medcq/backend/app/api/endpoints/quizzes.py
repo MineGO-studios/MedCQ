@@ -1,242 +1,156 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import Dict, List, Any
-from datetime import datetime, timezone
-import uuid
+# backend/app/api/endpoints/quizzes.py
 
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, status
+from typing import List, Optional
+from app.schemas.domain import Quiz, QuizSummary, QuizCreate, QuizUpdate
+from app.schemas.api import PaginatedResponse, QuizListParams
 from app.api.dependencies import get_current_active_user
-from app.schemas.quiz import QuizSummary, Quiz, QuizCreate, QuizResult, QuizAttemptSubmit
+from app.services.quiz_service import quiz_service
 
 router = APIRouter()
 
-# Temporary in-memory quiz store for development
-# In production, this would be replaced with a database
-fake_quizzes_db = {
-    "1": {
-        "id": "1",
-        "title": "Introduction to Anatomy",
-        "description": "Basic concepts of human anatomy",
-        "subject": "Anatomy",
-        "year_level": 1,
-        "time_limit_minutes": 30,
-        "tags": ["anatomy", "beginner"],
-        "question_count": 10,
-        "created_at": datetime(2023, 1, 1, tzinfo=timezone.utc),
-        "updated_at": datetime(2023, 1, 2, tzinfo=timezone.utc),
-        "created_by": "admin",
-        "questions": [
-            {
-                "id": "q1",
-                "text": "Which of the following is NOT a major body system?",
-                "explanation": "The major body systems include Cardiovascular, Respiratory, Digestive, Nervous, Musculoskeletal, etc.",
-                "type": "single_choice",
-                "options": [
-                    {"id": "a", "text": "Respiratory System", "is_correct": False},
-                    {"id": "b", "text": "Integumentary System", "is_correct": False},
-                    {"id": "c", "text": "Computational System", "is_correct": True},
-                    {"id": "d", "text": "Nervous System", "is_correct": False}
-                ]
-            }
-        ]
-    },
-    "2": {
-        "id": "2",
-        "title": "Cardiology Basics",
-        "description": "Fundamentals of cardiac physiology",
-        "subject": "Cardiology",
-        "year_level": 2,
-        "time_limit_minutes": 45,
-        "tags": ["cardiology", "physiology"],
-        "question_count": 15,
-        "created_at": datetime(2023, 2, 1, tzinfo=timezone.utc),
-        "updated_at": None,
-        "created_by": "admin",
-        "questions": []
-    }
-}
-
-@router.get("", response_model=List[QuizSummary])
+@router.get("", response_model=PaginatedResponse[QuizSummary])
 async def list_quizzes(
-    subject: str = None,
-    year_level: int = None,
+    subject: Optional[str] = Query(None, description="Filter by subject"),
+    year_level: Optional[int] = Query(None, description="Filter by year level", gt=0, lt=11),
+    tags: Optional[List[str]] = Query(None, description="Filter by tags"),
+    search: Optional[str] = Query(None, description="Search in title and description"),
+    page: int = Query(1, description="Page number", ge=1),
+    limit: int = Query(10, description="Items per page", ge=1, le=100),
     current_user: str = Depends(get_current_active_user)
-) -> List[Dict[str, Any]]:
+) -> PaginatedResponse:
     """
-    List available quizzes with optional filtering.
+    Get a paginated list of quizzes with optional filtering.
     
     Args:
-        subject: Filter by subject
-        year_level: Filter by year level
+        subject: Filter quizzes by subject
+        year_level: Filter quizzes by year level (1-10)
+        tags: Filter quizzes by tags
+        search: Search query for title and description
+        page: Page number for pagination
+        limit: Number of items per page
         current_user: Current authenticated user
         
     Returns:
-        List of quiz summaries
+        Paginated list of quiz summaries
     """
-    quizzes = list(fake_quizzes_db.values())
+    params = QuizListParams(
+        subject=subject,
+        year_level=year_level,
+        tags=tags,
+        search=search,
+        page=page,
+        limit=limit
+    )
     
-    # Apply filters if provided
-    if subject:
-        quizzes = [q for q in quizzes if q["subject"].lower() == subject.lower()]
-    
-    if year_level:
-        quizzes = [q for q in quizzes if q["year_level"] == year_level]
-    
-    # Convert to QuizSummary objects
-    return quizzes
+    return await quiz_service.get_quizzes(params)
 
 
 @router.post("", response_model=Quiz, status_code=status.HTTP_201_CREATED)
 async def create_quiz(
-    quiz: QuizCreate,
+    quiz_data: QuizCreate,
     current_user: str = Depends(get_current_active_user)
-) -> Dict[str, Any]:
+) -> Quiz:
     """
-    Create a new quiz.
+    Create a new quiz with questions and options.
     
     Args:
-        quiz: The quiz data
+        quiz_data: The quiz data including questions and options
         current_user: Current authenticated user
         
     Returns:
-        The created quiz
+        The created quiz with all data
     """
-    # Generate a new quiz ID
-    quiz_id = str(uuid.uuid4())
-    
-    # Create a new quiz object
-    now = datetime.now(timezone.utc)
-    
-    # Assign IDs to questions
-    questions = []
-    for q in quiz.questions:
-        question_id = str(uuid.uuid4())
-        question_dict = q.dict()
-        question_dict["id"] = question_id
-        questions.append(question_dict)
-    
-    # Create quiz record
-    new_quiz = {
-        "id": quiz_id,
-        "title": quiz.title,
-        "description": quiz.description,
-        "subject": quiz.subject,
-        "year_level": quiz.year_level,
-        "time_limit_minutes": quiz.time_limit_minutes,
-        "tags": quiz.tags,
-        "created_at": now,
-        "updated_at": None,
-        "created_by": current_user,
-        "questions": questions,
-        "question_count": len(questions)
-    }
-    
-    # Save to database (in this case, our fake DB)
-    fake_quizzes_db[quiz_id] = new_quiz
-    
-    return new_quiz
+    return await quiz_service.create_quiz(quiz_data, current_user)
 
 
 @router.get("/{quiz_id}", response_model=Quiz)
 async def get_quiz(
-    quiz_id: str,
+    quiz_id: str = Path(..., description="The ID of the quiz to retrieve"),
     current_user: str = Depends(get_current_active_user)
-) -> Dict[str, Any]:
+) -> Quiz:
     """
-    Get a specific quiz by ID.
+    Get a specific quiz by ID with all questions and options.
     
     Args:
         quiz_id: The ID of the quiz to retrieve
         current_user: Current authenticated user
         
     Returns:
-        The quiz data
+        The quiz with all questions and options
+        
+    Raises:
+        HTTPException: If quiz not found
     """
-    if quiz_id not in fake_quizzes_db:
+    quiz = await quiz_service.get_quiz_by_id(quiz_id)
+    
+    if not quiz:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Quiz not found"
+            detail=f"Quiz with ID {quiz_id} not found"
         )
     
-    return fake_quizzes_db[quiz_id]
+    return quiz
 
 
-@router.post("/{quiz_id}/submit", response_model=QuizResult)
-async def submit_quiz_attempt(
-    quiz_id: str,
-    attempt: QuizAttemptSubmit,
+@router.put("/{quiz_id}", response_model=Quiz)
+async def update_quiz(
+    quiz_data: QuizUpdate,
+    quiz_id: str = Path(..., description="The ID of the quiz to update"),
     current_user: str = Depends(get_current_active_user)
-) -> Dict[str, Any]:
+) -> Quiz:
     """
-    Submit answers for a quiz and get results.
+    Update an existing quiz.
     
     Args:
-        quiz_id: The ID of the quiz being attempted
-        attempt: The quiz attempt data
+        quiz_data: The quiz data to update
+        quiz_id: The ID of the quiz to update
         current_user: Current authenticated user
         
     Returns:
-        The quiz results
+        The updated quiz
+        
+    Raises:
+        HTTPException: If quiz not found or user doesn't have permission
     """
-    if quiz_id not in fake_quizzes_db:
+    try:
+        return await quiz_service.update_quiz(quiz_id, quiz_data, current_user)
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Quiz not found"
+            detail=str(e)
         )
-    
-    # Verify the quiz_id in the path matches the one in the request body
-    if quiz_id != attempt.quiz_id:
+    except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Quiz ID mismatch between path and body"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e)
         )
+
+
+@router.delete("/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_quiz(
+    quiz_id: str = Path(..., description="The ID of the quiz to delete"),
+    current_user: str = Depends(get_current_active_user)
+) -> None:
+    """
+    Delete a quiz and all associated data.
     
-    # Get the quiz
-    quiz = fake_quizzes_db[quiz_id]
-    
-    # Check if answers are provided for all questions (simplified validation)
-    question_ids = [q["id"] for q in quiz["questions"]]
-    missing_answers = set(question_ids) - set(attempt.answers.keys())
-    
-    if missing_answers:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Missing answers for questions: {missing_answers}"
-        )
-    
-    # Evaluate answers (simplified evaluation logic)
-    # In a real implementation, this would be more sophisticated
-    correct_count = 0
-    question_results = {}
-    
-    for question in quiz["questions"]:
-        question_id = question["id"]
-        user_answer = attempt.answers.get(question_id)
+    Args:
+        quiz_id: The ID of the quiz to delete
+        current_user: Current authenticated user
         
-        # For single choice questions, check if the selected option is correct
-        if question["type"] == "single_choice":
-            correct_option = next((o["id"] for o in question["options"] if o["is_correct"]), None)
-            is_correct = user_answer == correct_option
-            
-            if is_correct:
-                correct_count += 1
-            
-            question_results[question_id] = is_correct
-    
-    # Calculate the score as a percentage
-    total_count = len(quiz["questions"])
-    score = (correct_count / total_count) * 100 if total_count > 0 else 0
-    
-    # Create and return the result
-    result = {
-        "quiz_id": quiz_id,
-        "user_id": current_user,
-        "score": score,
-        "correct_count": correct_count,
-        "total_count": total_count,
-        "time_taken_seconds": attempt.time_taken_seconds,
-        "completed_at": datetime.now(timezone.utc),
-        "question_results": question_results
-    }
-    
-    # In a real implementation, we would save this result to the database
-    
-    return result
+    Raises:
+        HTTPException: If quiz not found or user doesn't have permission
+    """
+    try:
+        success = await quiz_service.delete_quiz(quiz_id, current_user)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Quiz with ID {quiz_id} not found"
+            )
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e)
+        )
