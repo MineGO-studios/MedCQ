@@ -1,5 +1,11 @@
 // frontend/src/services/api.ts
 
+declare global {
+  interface Window {
+    authContext?: AuthContext;
+  }
+}
+
 import axios from 'axios';
 import { quizService, userService } from './databaseService';
 import { QuizSummary, Quiz, QuizAttempt, QuizResult } from '../types';
@@ -27,6 +33,49 @@ apiClient.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // If error is 401 and we haven't tried to refresh yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        // Try to refresh the token
+        await authApi.refreshToken();
+        
+        // Retry the original request
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed, redirect to login
+        console.error('Token refresh failed:', refreshError);
+        
+        // Get auth context
+        const auth = window.authContext;
+        if (auth) {
+          auth.signOut();
+        }
+        
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Expose auth context to window for interceptor use
+interface AuthContext {
+  signOut: () => void;
+  // Add other properties and methods of AuthContext if needed
+}
+
+export const setupAuthInterceptor = (authContext: AuthContext) => {
+  (window as unknown as { authContext: AuthContext }).authContext = authContext;
+};
 
 // API service for quizzes
 export const quizzesApi = {
@@ -71,3 +120,72 @@ export const quizzesApi = {
     return response.data;
   }
 };
+
+// src/services/api.ts - Update authApi
+
+export const authApi = {
+  // Login with Firebase token and handle HTTP-only cookie response
+  async loginWithFirebase(firebaseToken: string) {
+    return apiClient.post('/auth/firebase-token', { token: firebaseToken }, {
+      withCredentials: true, // Important for cookies
+    });
+  },
+  
+  // Get user profile
+  async getProfile() {
+    return apiClient.get('/users/me', {
+      withCredentials: true,
+    });
+  },
+  
+  // Refresh token
+  async refreshToken() {
+    return apiClient.post('/auth/refresh', {}, {
+      withCredentials: true,
+    });
+  },
+  
+  // Logout
+  async logout() {
+    return apiClient.post('/auth/logout', {}, {
+      withCredentials: true,
+    });
+  }
+};
+
+let csrfToken: string | null = null;
+
+// Function to get CSRF token
+const getCsrfToken = async () => {
+  if (!csrfToken) {
+    const response = await apiClient.get('/auth/csrf-token', {
+      withCredentials: true,
+    });
+    csrfToken = response.data?.token;
+  }
+  return csrfToken;
+};
+
+// Add request interceptor to include CSRF token
+apiClient.interceptors.request.use(
+  async (config) => {
+    // Add credentials for cookie handling
+    config.withCredentials = true;
+    
+    // Add CSRF token for non-GET requests
+    if (config.method !== 'get') {
+      try {
+        const token = await getCsrfToken();
+        if (token && config.headers) {
+          config.headers['X-CSRF-Token'] = token;
+        }
+      } catch (error) {
+        console.error('Failed to get CSRF token:', error);
+      }
+    }
+    
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+

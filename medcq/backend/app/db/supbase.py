@@ -148,4 +148,44 @@ async def create_quiz(quiz_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         logger.error(f"Error creating quiz in Supabase: {e}")
         return None
 
+async def fetch_quiz_by_id(quiz_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Fetch a quiz by its ID, including questions and answer options.
+    
+    Args:
+        quiz_id: The ID of the quiz to fetch
+        
+    Returns:
+        The quiz record with questions and answer options, or None if not found
+    """
+    client = get_supabase_client()
+    if not client:
+        logger.warning("Supabase client not initialized. Cannot fetch quiz.")
+        return None
+    
+    try:
+        # Fetch the quiz
+        quiz_resp = client.from_("quizzes").select("*").eq("id", quiz_id).single().execute()
+        if not quiz_resp.data:
+            logger.warning(f"Quiz with ID {quiz_id} not found.")
+            return None
+        
+        quiz = quiz_resp.data
+        
+        # Fetch questions
+        questions_resp = client.from_("questions").select("*").eq("quiz_id", quiz_id).execute()
+        if questions_resp.data:
+            quiz["questions"] = questions_resp.data
+            
+            # Fetch answer options for each question
+            for question in quiz["questions"]:
+                options_resp = client.from_("answer_options").select("*").eq("question_id", question["id"]).execute()
+                if options_resp.data:
+                    question["options"] = options_resp.data
+        
+        return quiz
+    except Exception as e:
+        logger.error(f"Error fetching quiz by ID {quiz_id} in Supabase: {e}")
+        return None
+
 # Add more database functions...

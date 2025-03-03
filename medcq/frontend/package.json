@@ -16,14 +16,17 @@
         "generate-types": "ts-node scripts/generate-types.ts"
     },
     "dependencies": {
+        "@supabase/supabase-js": "^2.49.1",
         "@tailwindcss/vite": "^4.0.9",
         "axios": "^1.4.0",
         "firebase": "^11.4.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
-        "react-router-dom": "^6.14.0"
+        "react-router-dom": "^6.14.0",
+        "supabase": "^2.15.8"
     },
     "devDependencies": {
+        "@types/node": "^22.13.8",
         "@types/react": "^18.2.14",
         "@types/react-dom": "^18.2.6",
         "@typescript-eslint/eslint-plugin": "^5.61.0",

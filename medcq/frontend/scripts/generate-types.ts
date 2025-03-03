@@ -1,6 +1,5 @@
 // scripts/generate-types.ts
 import { execSync } from 'child_process';
-import * as fs from 'fs';
 import * as path from 'path';
 
 // Run the Supabase CLI to generate types
