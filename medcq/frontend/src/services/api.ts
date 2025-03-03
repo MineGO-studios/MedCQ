@@ -8,7 +8,7 @@ declare global {
 
 import axios from 'axios';
 import { quizService, userService } from './databaseService';
-import { QuizSummary, Quiz, QuizAttempt, QuizResult } from '../types';
+import { QuizSummary, Quiz, QuizAttempt, QuizResult } from '../types/domain';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',

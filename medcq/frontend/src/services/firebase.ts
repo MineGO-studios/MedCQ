@@ -7,7 +7,7 @@ import {
   getAuth, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  signOut,
+  signOut as firebaseSignOut,
   signInWithPopup,
   GoogleAuthProvider,
   User as FirebaseUser,
@@ -31,6 +31,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 /**
  * Convert Firebase user to application User type
@@ -48,6 +49,11 @@ export const mapFirebaseUser = (firebaseUser: FirebaseUser): User => {
  * Firebase authentication service
  */
 export const firebaseAuth = {
+  /**
+   * Get current user
+   */
+  currentUser: (): FirebaseUser | null => auth.currentUser,
+
   /**
    * Sign in with email and password
    */
@@ -73,7 +79,7 @@ export const firebaseAuth = {
    * Sign out the current user
    */
   signOut: async (): Promise<void> => {
-    return signOut(auth);
+    return firebaseSignOut(auth);
   },
 
   /**
