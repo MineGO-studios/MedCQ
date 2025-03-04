@@ -1,3 +1,9 @@
+
+// frontend/src/types/index.ts
+export * from './domain';
+export * from './api';
+export * from './supabase';
+
 /**
  * Core application types providing type safety across components
  */
