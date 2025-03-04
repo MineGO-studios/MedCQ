@@ -1,16 +1,18 @@
-# app/api/dependencies.py
+# backend/app/api/dependencies.py
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pydantic import ValidationError
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Callable
 from datetime import datetime
 
 from app.core.config import settings
 from app.schemas.auth import TokenData
 from app.core.firebase import initialize_firebase
 from app.core.security import decode_and_validate_token
+from app.schemas.user import UserRole
+from app.db.supabase import supabase_client
 
 # Initialize OAuth2 scheme for token validation
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_PREFIX}/auth/token", auto_error=False)
@@ -19,18 +21,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_PREFIX}/auth/token
 firebase_app = initialize_firebase()
 
 async def get_current_user(request: Request) -> str:
-    """
-    Extract user from token in cookie or header.
-    
-    Args:
-        request: The FastAPI request object
-        
-    Returns:
-        str: The user ID extracted from the token
-        
-    Raises:
-        HTTPException: If the token is invalid, expired, or missing
-    """
+    """Extract user from token in cookie or header."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -73,24 +64,66 @@ async def get_current_user(request: Request) -> str:
 
 
 async def get_current_active_user(current_user: str = Depends(get_current_user)) -> str:
-    """
-    Verify that the current user is active.
-    
-    This is a placeholder for future user status validation logic.
-    In a real implementation, we would check if the user is active in the database.
-    
-    Args:
-        current_user: The user ID of the authenticated user
-        
-    Returns:
-        str: The user ID if the user is active
-        
-    Raises:
-        HTTPException: If the user is inactive
-    """
+    """Verify that the current user is active."""
     # TODO: Implement user status validation against database
     # For now, we'll just return the user ID
     return current_user
+
+
+async def get_user_roles(user_id: str) -> List[UserRole]:
+    """
+    Get roles for a specific user.
+    
+    Args:
+        user_id: The ID of the user
+        
+    Returns:
+        List of user roles
+    """
+    try:
+        # Get user from database
+        response = supabase_client.from_("user_profiles").select(
+            "roles"
+        ).eq("id", user_id).single().execute()
+        
+        if response.error:
+            # Default to student role if profile not found
+            return [UserRole.STUDENT]
+        
+        roles = response.data.get("roles", [UserRole.STUDENT])
+        
+        # Ensure at least one role
+        if not roles:
+            roles = [UserRole.STUDENT]
+            
+        return roles
+    except Exception:
+        # Default to student role on error
+        return [UserRole.STUDENT]
+
+
+def has_role(required_role: UserRole) -> Callable:
+    """
+    Dependency to check if a user has a specific role.
+    
+    Args:
+        required_role: The role required for access
+        
+    Returns:
+        User ID if role check passes
+    """
+    async def role_checker(current_user: str = Depends(get_current_active_user)) -> str:
+        user_roles = await get_user_roles(current_user)
+        
+        if required_role not in user_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Role {required_role} required for this operation"
+            )
+        
+        return current_user
+    
+    return role_checker
 
 
 async def validate_csrf_token(

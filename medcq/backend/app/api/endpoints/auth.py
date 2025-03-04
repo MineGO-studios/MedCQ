@@ -13,6 +13,7 @@ from app.core.security import create_access_token, verify_password, get_password
 from app.core.firebase import verify_firebase_token
 from app.schemas.auth import TokenResponse, UserLogin, FirebaseTokenRequest, TokenData
 from app.api.dependencies import get_current_user, validate_csrf_token
+from app.services.user_service import user_service
 
 router = APIRouter()
 
@@ -143,20 +144,7 @@ async def login_with_firebase(
     firebase_token_data: FirebaseTokenRequest,
     response: Response
 ) -> Dict[str, Any]:
-    """
-    Authenticate using a Firebase ID token.
-    
-    Args:
-        request: FastAPI request object
-        firebase_token_data: Request body containing Firebase token
-        response: FastAPI response object for setting cookies
-        
-    Returns:
-        Dictionary containing authentication status and user information
-        
-    Raises:
-        HTTPException: If Firebase token is invalid
-    """
+    """Authenticate using a Firebase ID token."""
     firebase_token = firebase_token_data.token
     decoded_token = verify_firebase_token(firebase_token)
     if not decoded_token:
@@ -222,9 +210,23 @@ async def login_with_firebase(
         samesite="lax" if settings.ENV == "development" else "strict"
     )
     
-    # TODO: Create or update user profile in the database
-    # This would typically involve checking if the user exists
-    # and creating/updating their profile based on Firebase data
+    # Create or update user profile
+    try:
+        # Get user info from Firebase token
+        user_data = {
+            "id": user_id,
+            "email": decoded_token.get("email", ""),
+            "display_name": decoded_token.get("name"),
+            "photo_url": decoded_token.get("picture"),
+            "ip_address": request.client.host if request.client else None,
+            "user_agent": request.headers.get("User-Agent")
+        }
+        
+        # Create or update user profile
+        await user_service.create_user_profile(user_data)
+    except Exception as e:
+        # Log error but continue
+        print(f"Failed to create/update user profile: {str(e)}")
     
     return {
         "status": "success",
