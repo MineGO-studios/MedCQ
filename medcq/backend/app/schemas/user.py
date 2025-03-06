@@ -4,6 +4,7 @@ from typing import List, Dict, Optional, Any, Union
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, validator
 from enum import Enum
+from .quiz import QuizResult  # Import the QuizResult class from the quiz module
 
 
 class UserRole(str, Enum):

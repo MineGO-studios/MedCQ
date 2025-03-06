@@ -12,7 +12,7 @@ from app.schemas.auth import TokenData
 from app.core.firebase import initialize_firebase
 from app.core.security import decode_and_validate_token
 from app.schemas.user import UserRole
-from app.db.supabase import supabase_client
+from app.db.supbase import supabase_client 
 
 # Initialize OAuth2 scheme for token validation
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_PREFIX}/auth/token", auto_error=False)

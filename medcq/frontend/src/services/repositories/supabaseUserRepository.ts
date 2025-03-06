@@ -1,6 +1,6 @@
 // frontend/src/services/repositories/supabaseUserRepository.ts
 
-import { supabase } from '../supabase';
+import { supabase } from '../supbase';
 import { 
   UserProfile, 
   UserPreferences,

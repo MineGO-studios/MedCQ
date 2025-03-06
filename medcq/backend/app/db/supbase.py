@@ -187,5 +187,3 @@ async def fetch_quiz_by_id(quiz_id: int) -> Optional[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"Error fetching quiz by ID {quiz_id} in Supabase: {e}")
         return None
-
-# Add more database functions...

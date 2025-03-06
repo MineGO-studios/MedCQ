@@ -18,7 +18,7 @@ from app.schemas.user import (
 )
 from app.schemas.api import PaginatedResponse
 from app.services.quiz_attempt_service import quiz_attempt_service
-from app.db.supabase import supabase_client
+from app.db.supbase import supabase_client
 
 class UserService:
     """Service for user management."""

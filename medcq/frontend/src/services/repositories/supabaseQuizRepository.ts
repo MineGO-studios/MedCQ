@@ -1,6 +1,6 @@
 // frontend/src/services/repositories/supabaseQuizRepository.ts
 
-import { supabase } from '../supabase';
+import { supabase } from '../supbase';
 import { 
   Quiz, 
   QuizStatus,
@@ -716,6 +716,26 @@ export class SupabaseQuizRepository implements QuizRepository {
     };
     
     return await this.getQuizzes(quizParams);
+  }
+
+  /**
+   * Fetches a quiz by its ID
+   * @param id The ID of the quiz to fetch
+   * @returns The quiz object or null if not found
+   */
+  async getQuiz(id: string): Promise<Quiz | null> {
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select()
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching quiz:', error);
+      return null;
+    }
+    
+    return data as Quiz;
   }
 }
 

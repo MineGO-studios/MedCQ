@@ -1,6 +1,6 @@
 // frontend/src/services/repositories/supabaseQuizAttemptRepository.ts
 
-import { supabase } from '../supabase';
+import { supabase } from '../supbase';
 import { 
   QuizAttempt, 
   QuizResult, 
