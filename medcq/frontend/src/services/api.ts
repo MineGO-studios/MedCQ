@@ -10,6 +10,15 @@ import axios from 'axios';
 import { quizService, userService } from './databaseService';
 import { QuizSummary, Quiz, QuizAttempt, QuizResult } from '../types/domain';
 
+// Define pagination response interface
+interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
   headers: {
@@ -80,22 +89,29 @@ export const setupAuthInterceptor = (authContext: AuthContext) => {
 // API service for quizzes
 export const quizzesApi = {
   // Get list of quizzes with optional filtering
-  async getQuizzes(subject?: string, yearLevel?: number): Promise<QuizSummary[]> {
-    // First try direct database access for better performance
+  async getQuizzes(params?: {
+    subject?: string,
+    yearLevel?: number,
+    page?: number,
+    limit?: number
+  }): Promise<PaginatedResponse<QuizSummary>> {
     try {
+      // First try direct database access for better performance
       return await quizService.getQuizzes({
-        subject_id: subject, 
-        year_level: yearLevel
+        subject_id: params?.subject, 
+        year_level: params?.yearLevel
       });
     } catch (error) {
       console.error('Direct DB access failed, falling back to API:', error);
+      
       // Fall back to API
-      const response = await apiClient.get('/quizzes', {
-        params: {
-          subject,
-          year_level: yearLevel
-        }
-      });
+      const queryParams = new URLSearchParams();
+      if (params?.subject) queryParams.append('subject', params.subject);
+      if (params?.yearLevel) queryParams.append('year_level', params.yearLevel.toString());
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      
+      const response = await apiClient.get(`/quizzes?${queryParams.toString()}`);
       return response.data;
     }
   },
