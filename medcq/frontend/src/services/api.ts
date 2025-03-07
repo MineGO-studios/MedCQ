@@ -99,7 +99,7 @@ export const quizzesApi = {
   }): Promise<PaginatedResponse<QuizSummary>> {
     try {
       // First try direct database access for better performance
-      const queryParams: Record<string, any> = {
+      const queryParams: Record<string, unknown> = {
         page: params?.page || 1,
         limit: params?.limit || 10
       };
@@ -129,18 +129,19 @@ export const quizzesApi = {
     }
   },
 
-  // Get a specific quiz by ID
-  async getQuiz(quizId: string): Promise<Quiz> {
-    // First try direct database access for better performance
-    try {
-      return await quizService.getQuizById(quizId);
-    } catch (error) {
-      console.error('Direct DB access failed, falling back to API:', error);
-      // Fall back to API
-      const response = await apiClient.get(`/quizzes/${quizId}`);
-      return response.data;
-    }
-  },
+  // Get a specific quiz by ID with complete details
+async getQuiz(quizId: string): Promise<Quiz> {
+  try {
+    // Try direct database access for better performance
+    return await quizService.getQuizById(quizId);
+  } catch (error) {
+    console.error('Direct DB access failed, falling back to API:', error);
+    
+    // Fall back to API
+    const response = await apiClient.get(`/quizzes/${quizId}`);
+    return response.data;
+  }
+},
 
   // Submit quiz attempt
   async submitQuiz(quizId: string, attempt: QuizAttempt): Promise<QuizResult> {

@@ -93,3 +93,9 @@ htmlcov/
 .history
 .vercel
 .netlify
+
+__tests__/
+tests/
+test/
+*.spec.*
+*.test.*

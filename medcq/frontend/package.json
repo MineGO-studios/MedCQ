@@ -20,8 +20,6 @@
     "dependencies": {
         "@supabase/supabase-js": "^2.49.1",
         "@tailwindcss/vite": "^4.0.9",
-        "@testing-library/jest-dom": "^6.6.3",
-        "@testing-library/react": "^16.2.0",
         "axios": "^1.4.0",
         "dotenv": "^16.4.7",
         "firebase": "^11.4.0",
@@ -31,9 +29,11 @@
         "supabase": "^2.15.8"
     },
     "devDependencies": {
+        "@testing-library/jest-dom": "^6.6.3",
+        "@testing-library/react": "^16.2.0",
         "@types/dotenv": "^6.1.1",
         "@types/node": "^22.13.8",
-        "@types/react": "^18.2.14",
+        "@types/react": "^18.3.18",
         "@types/react-dom": "^18.2.6",
         "@typescript-eslint/eslint-plugin": "^5.61.0",
         "@typescript-eslint/parser": "^5.61.0",
