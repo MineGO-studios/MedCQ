@@ -88,19 +88,28 @@ export const setupAuthInterceptor = (authContext: AuthContext) => {
 
 // API service for quizzes
 export const quizzesApi = {
-  // Get list of quizzes with optional filtering
+  // Get list of quizzes with optional filtering and pagination
   async getQuizzes(params?: {
     subject?: string,
     yearLevel?: number,
     page?: number,
-    limit?: number
+    limit?: number,
+    search?: string,
+    tags?: string[]
   }): Promise<PaginatedResponse<QuizSummary>> {
     try {
       // First try direct database access for better performance
-      return await quizService.getQuizzes({
-        subject_id: params?.subject, 
-        year_level: params?.yearLevel
-      });
+      const queryParams: Record<string, any> = {
+        page: params?.page || 1,
+        limit: params?.limit || 10
+      };
+      
+      if (params?.subject) queryParams.subject = params.subject;
+      if (params?.yearLevel) queryParams.year_level = params.yearLevel;
+      if (params?.search) queryParams.search = params.search;
+      if (params?.tags && params.tags.length > 0) queryParams.tags = params.tags;
+      
+      return await quizService.getQuizzes(queryParams);
     } catch (error) {
       console.error('Direct DB access failed, falling back to API:', error);
       
@@ -110,6 +119,10 @@ export const quizzesApi = {
       if (params?.yearLevel) queryParams.append('year_level', params.yearLevel.toString());
       if (params?.page) queryParams.append('page', params.page.toString());
       if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.search) queryParams.append('search', params.search);
+      if (params?.tags && params.tags.length > 0) {
+        queryParams.append('tags', params.tags.join(','));
+      }
       
       const response = await apiClient.get(`/quizzes?${queryParams.toString()}`);
       return response.data;

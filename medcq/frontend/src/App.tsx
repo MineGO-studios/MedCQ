@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { setupAuthInterceptor } from './services/api';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -66,7 +67,9 @@ function AppContent() {
             path="/dashboard" 
             element={
               <ProtectedRoute>
+                <ErrorBoundary>
                 <DashboardPage />
+                </ErrorBoundary>
               </ProtectedRoute>
             } 
           />
@@ -74,7 +77,9 @@ function AppContent() {
             path="/quizzes" 
             element={
               <ProtectedRoute>
+                <ErrorBoundary>
                 <QuizListPage />
+                </ErrorBoundary>
               </ProtectedRoute>
             } 
           />
@@ -82,7 +87,9 @@ function AppContent() {
             path="/quizzes/:quizId" 
             element={
               <ProtectedRoute>
+                <ErrorBoundary>
                 <QuizDetailPage />
+                </ErrorBoundary>
               </ProtectedRoute>
             } 
           />
@@ -90,7 +97,9 @@ function AppContent() {
             path="/quizzes/:quizId/attempt" 
             element={
               <ProtectedRoute>
+                <ErrorBoundary>
                 <QuizAttemptPage />
+                </ErrorBoundary>
               </ProtectedRoute>
             } 
           />
@@ -98,7 +107,9 @@ function AppContent() {
             path="/profile" 
             element={
               <ProtectedRoute>
+                <ErrorBoundary>
                 <ProfilePage />
+                </ErrorBoundary>
               </ProtectedRoute>
             } 
           />
