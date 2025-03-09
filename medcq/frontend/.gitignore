@@ -25,3 +25,9 @@ dist-ssr
 
 
 package-lock.json
+
+__tests__/
+tests/
+test/
+*.spec.*
+*.test.*
