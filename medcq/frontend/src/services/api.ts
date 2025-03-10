@@ -40,7 +40,7 @@ interface QuizResultResponse extends QuizResult {
   passed: boolean; // Add passed property to match usage in submitQuizAttempt
 }
 
-const apiClient = axios.create({
+export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
   headers: {
     'Content-Type': 'application/json',

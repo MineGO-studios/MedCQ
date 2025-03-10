@@ -1,0 +1,49 @@
+# .github/workflows/performance.yml
+name: Performance Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sundays
+
+jobs:
+  load-testing:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+      
+      - name: Install Artillery
+        run: npm install -g artillery
+      
+      - name: Set up test environment
+        run: |
+          cp .env.example .env
+          docker-compose -f docker-compose.test.yml up -d
+          npm ci
+      
+      - name: Wait for services to be ready
+        run: ./scripts/wait-for-services.sh
+      
+      - name: Run load tests
+        run: artillery run load-tests/scenarios.yml -o load-test-results.json
+      
+      - name: Generate report
+        run: artillery report load-test-results.json
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: load-test-results
+          path: |
+            load-test-results.json
+            artillery-report.html

@@ -1,5 +1,8 @@
 // cypress/support/commands.ts
-Cypress.Commands.add('login', (email: string, password: string) => {
+/// <reference types="cypress" />
+/* global Cypress, cy */
+
+Cypress.Commands.add('login', (email, password) => {
     // Implement your login logic here
     cy.visit('/login');
     cy.get('[data-cy=email-input]').type(email);
