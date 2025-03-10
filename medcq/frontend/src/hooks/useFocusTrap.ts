@@ -80,3 +80,5 @@ export function useFocusTrap(
   
   return containerRef;
 }
+
+export default useFocusTrap;
