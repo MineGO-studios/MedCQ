@@ -94,15 +94,18 @@ htmlcov/
 .vercel
 .netlify
 
+#--------------------------------------------------------------
+# TEMPORARILY IGNORED FILES - WILL BE NEEDED FOR LAUNCH
+#--------------------------------------------------------------
+
 __tests__/
 tests/
 test/
 *.spec.*
 *.test.*
-
-#--------------------------------------------------------------
-# TEMPORARILY IGNORED FILES - WILL BE NEEDED FOR LAUNCH
-#--------------------------------------------------------------
+*.test.tsx*
+*.test.ts*
+*.test.py*
 
 # Documentation - Temporarily ignored during development
 # Will be needed for onboarding and user documentation
@@ -146,3 +149,52 @@ migrations/
 **/*UI Component Library*.md
 **/*Layout System*.md
 **/*Form Validation System*.md
+
+# Additional Build/Cache
+.cache/
+.parcel-cache/
+.docusaurus/
+.serverless/
+.fusebox/
+.dynamodb/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.pnp.*
+
+# Frontend Specific
+.storybook/
+storybook-static/
+**/src/generated/
+*.min.js
+*.min.css
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Backend Specific
+**/alembic.ini
+**/__init__.py
+celerybeat-schedule
+*.sage.py
+local_settings.py
+.scrapy
+.ipynb_checkpoints
+.pytest_cache/
+
+# Temporary Dev Tools
+.grunt/
+.stylelintcache
+.lock-wscript
+.node_repl_history
+typings/
+jspm_packages/
+.tmp/
+temp/
+
+# Auto-generated Docs
+/site
+/out
+/swagger-ui
+/api-docs
+/typedocs
