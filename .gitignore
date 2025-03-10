@@ -99,3 +99,50 @@ tests/
 test/
 *.spec.*
 *.test.*
+
+#--------------------------------------------------------------
+# TEMPORARILY IGNORED FILES - WILL BE NEEDED FOR LAUNCH
+#--------------------------------------------------------------
+
+# Documentation - Temporarily ignored during development
+# Will be needed for onboarding and user documentation
+docs/
+*.md
+!README.md
+!SECURITY.md
+
+# Configuration - Temporarily ignored to free up capacity
+# Core configuration files needed for build and linting
+*.prettierrc
+*.eslintrc*
+tsconfig*.json
+vite.config.ts
+postcss.config.js
+vitest.config.ts
+tailwind.config.js
+
+# Asset Files - Temporarily ignored during core feature development
+# Will be needed for UI implementation
+*.svg
+public/
+medcq/frontend/src/assets/
+
+# Example Components - Temporarily ignored while focusing on core functionality
+# Will serve as reference for UI implementation
+**/example/
+**/examples/
+
+# Migration Files - Temporarily ignored during schema development
+# Critical for database setup before launch
+migrations/
+**/migrations/
+
+# Roadmap and Planning - Temporarily ignored while implementing core features
+**/roadmap*
+**/MedCQ*roadmap*
+
+# UI Component Documentation - Temporarily ignored 
+# Will be useful reference during UI polish phase
+**/*UI Component Library*.md
+**/*Layout System*.md
+**/*Form Validation System*.md
