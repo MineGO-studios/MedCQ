@@ -18,4 +18,4 @@ async def health_check():
         "timestamp": datetime.utcnow().isoformat(),
         "version": settings.VERSION,
         "environment": settings.ENV
-    }
+    } 
