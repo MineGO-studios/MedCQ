@@ -199,3 +199,4 @@ temp/
 /api-docs
 /typedocs
 medcq/frontend/.env.staging
+medcq/backend/.env.staging
