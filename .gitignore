@@ -198,3 +198,4 @@ temp/
 /swagger-ui
 /api-docs
 /typedocs
+medcq/frontend/.env.staging
