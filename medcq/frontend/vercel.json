@@ -1,0 +1,22 @@
+{
+    "name": "medcq-frontend",
+    "framework": "vite",
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "routes": [
+      { "handle": "filesystem" },
+      { "src": "/assets/(.*)", "dest": "/assets/$1" },
+      { "src": "/(.*)", "dest": "/index.html" }
+    ],
+    "env": {
+      "VITE_API_URL": "@medcq-api-url",
+      "VITE_FIREBASE_API_KEY": "@medcq-firebase-api-key",
+      "VITE_FIREBASE_AUTH_DOMAIN": "@medcq-firebase-auth-domain",
+      "VITE_FIREBASE_PROJECT_ID": "@medcq-firebase-project-id",
+      "VITE_FIREBASE_STORAGE_BUCKET": "@medcq-firebase-storage-bucket",
+      "VITE_FIREBASE_MESSAGING_SENDER_ID": "@medcq-firebase-messaging-sender-id",
+      "VITE_FIREBASE_APP_ID": "@medcq-firebase-app-id",
+      "VITE_SUPABASE_URL": "@medcq-supabase-url",
+      "VITE_SUPABASE_KEY": "@medcq-supabase-key"
+    }
+  }

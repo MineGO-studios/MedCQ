@@ -1,0 +1,20 @@
+{
+    "name": "medcq-api",
+    "version": 2,
+    "functions": {
+      "api/**/*.py": {
+        "runtime": "python3.11"
+      }
+    },
+    "routes": [
+      { "src": "/api/(.*)", "dest": "/api/$1" },
+      { "src": "/(.*)", "dest": "/api/index.py" }
+    ],
+    "env": {
+      "SECRET_KEY": "@medcq-secret-key",
+      "SUPABASE_URL": "@medcq-supabase-url",
+      "SUPABASE_KEY": "@medcq-supabase-key",
+      "FIREBASE_CREDENTIALS_PATH": "@medcq-firebase-credentials-path",
+      "ENV": "production"
+    }
+  }

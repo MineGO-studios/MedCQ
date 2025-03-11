@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
 from contextlib import asynccontextmanager
+from app.core.monitoring import setup_monitoring
 
 from app.core.config import settings
 from app.api.router import api_router
@@ -54,3 +55,5 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.get("/health", tags=["Health"])
 async def health_check():
     return {"status": "healthy", "version": settings.VERSION}
+
+setup_monitoring(app)
