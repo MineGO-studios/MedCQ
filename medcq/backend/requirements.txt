@@ -10,6 +10,6 @@ alembic==1.11.1
 python-jose==3.4.0
 passlib==1.7.4
 bcrypt==4.0.1
-python-multipart==0.0.18
+python-multipart==0.0.22
 email-validator==2.0.0
 loguru==0.7.0
